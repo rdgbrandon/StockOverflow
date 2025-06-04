@@ -1,0 +1,5 @@
+1. do npm install, we are using next.js
+2. npm install react-chartjs-2 chart.js
+3. make sure that the code is COMPLETELY updated, dont commit anything before confirming with the group
+4. do npx next dev and type in localhost:3000 in your browser
+5. click on stockoverflow button
