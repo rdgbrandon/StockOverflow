@@ -18,6 +18,9 @@ export default function BrownianSimulator() {
   const [days, setDays] = useState(100);
   const [dataPoints, setDataPoints] = useState([]);
   const [isRunning, setIsRunning] = useState(false);
+  const [symbol, setSymbol] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const intervalRef = useRef(null);
 
   const generateNextPrice = () => {
@@ -40,6 +43,25 @@ export default function BrownianSimulator() {
   const stopSimulation = () => {
     clearInterval(intervalRef.current);
     setIsRunning(false);
+  };
+
+  const fetchStats = async () => {
+    if (!symbol) return;
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/stockstats?symbol=${symbol}`);
+      if (!res.ok) {
+        throw new Error('Failed to fetch');
+      }
+      const json = await res.json();
+      setVolatility(parseFloat(json.volatility.toFixed(2)));
+      setDrift(parseFloat(json.drift.toFixed(2)));
+    } catch (err) {
+      setError('Could not fetch data');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -161,6 +183,26 @@ export default function BrownianSimulator() {
 
         {/* Controls */}
         <div className="grid grid-cols-2 gap-4 mb-6">
+          <label className="flex flex-col col-span-2">
+            <span className="font-semibold mb-1 text-gray-300">Stock Symbol</span>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={symbol}
+                onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+                className="border rounded px-3 py-2 flex-grow focus:outline-none focus:ring-2 focus:ring-blue-500 text-white bg-gray-800"
+              />
+              <button
+                type="button"
+                disabled={loading || !symbol}
+                onClick={fetchStats}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded disabled:opacity-50"
+              >
+                {loading ? "Loading..." : "Fetch"}
+              </button>
+            </div>
+            {error && <span className="text-red-500 text-sm mt-1">{error}</span>}
+          </label>
           <label className="flex flex-col">
             <span className="font-semibold mb-1 text-gray-300">Initial Price</span>
             <input
