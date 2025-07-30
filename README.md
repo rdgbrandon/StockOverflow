@@ -4,6 +4,10 @@ This project contains a simple Next.js application that visualizes a Brownian mo
 
 ## Installation and Running
 
+Open the app on https://stock-overflow-auto.vercel.app/
+
+Or Manually
+
 1. Install dependencies:
    ```bash
    npm install
