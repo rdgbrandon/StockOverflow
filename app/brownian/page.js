@@ -11,6 +11,21 @@ import {
 
 ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement);
 
+const POPULAR_TICKERS = [
+  { symbol: "AAPL", name: "Apple" },
+  { symbol: "AMZN", name: "Amazon" },
+  { symbol: "MSFT", name: "Microsoft" },
+  { symbol: "GOOG", name: "Alphabet" },
+  { symbol: "NVDA", name: "NVIDIA" },
+];
+
+const NAME_TO_SYMBOL = POPULAR_TICKERS.reduce((acc, t) => {
+  acc[t.name.toUpperCase()] = t.symbol;
+  return acc;
+}, {
+  GOOGLE: "GOOG",
+});
+
 export default function BrownianSimulator() {
   const [initialPrice, setInitialPrice] = useState(100);
   const [volatility, setVolatility] = useState(1); // Stored as percentage (1 = 1%)
@@ -19,6 +34,7 @@ export default function BrownianSimulator() {
   const [dataPoints, setDataPoints] = useState([]);
   const [isRunning, setIsRunning] = useState(false);
   const [symbol, setSymbol] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const intervalRef = useRef(null);
@@ -45,12 +61,19 @@ export default function BrownianSimulator() {
     setIsRunning(false);
   };
 
+  const normalizeSymbol = (value) => {
+    const upper = value.toUpperCase().trim();
+    return NAME_TO_SYMBOL[upper] || upper;
+  };
+
   const fetchStats = async () => {
     if (!symbol) return;
+    const normalized = normalizeSymbol(symbol);
+    setSymbol(normalized);
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`/api/stockstats?symbol=${symbol}`);
+      const res = await fetch(`/api/stockstats?symbol=${normalized}`);
       if (!res.ok) {
         throw new Error('Failed to fetch');
       }
@@ -186,12 +209,34 @@ export default function BrownianSimulator() {
           <label className="flex flex-col col-span-2">
             <span className="font-semibold mb-1 text-gray-300">Stock Symbol</span>
             <div className="flex gap-2">
-              <input
-                type="text"
-                value={symbol}
-                onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-                className="border rounded px-3 py-2 flex-grow focus:outline-none focus:ring-2 focus:ring-blue-500 text-white bg-gray-800"
-              />
+              <div className="flex-grow relative">
+                <input
+                  type="text"
+                  value={symbol}
+                  onFocus={() => setShowSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 100)}
+                  onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+                  className="border rounded px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-white bg-gray-800"
+                />
+                {showSuggestions && (
+                  <ul className="absolute left-0 right-0 bg-gray-800 border border-gray-700 rounded mt-1 z-10 max-h-48 overflow-y-auto">
+                    {POPULAR_TICKERS.map((t) => (
+                      <li key={t.symbol}>
+                        <button
+                          type="button"
+                          onMouseDown={() => {
+                            setSymbol(t.symbol);
+                            setShowSuggestions(false);
+                          }}
+                          className="block w-full text-left px-3 py-1 hover:bg-gray-700"
+                        >
+                          {t.symbol} - {t.name}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
               <button
                 type="button"
                 disabled={loading || !symbol}
