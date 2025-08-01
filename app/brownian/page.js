@@ -17,6 +17,8 @@ const POPULAR_TICKERS = [
   { symbol: "MSFT", name: "Microsoft" },
   { symbol: "GOOG", name: "Alphabet" },
   { symbol: "NVDA", name: "NVIDIA" },
+  { symbol: "META", name: "Meta Platforms" },
+  { symbol: "TSLA", name: "Tesla" }
 ];
 
 const NAME_TO_SYMBOL = POPULAR_TICKERS.reduce((acc, t) => {
