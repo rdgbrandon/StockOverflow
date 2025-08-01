@@ -39,7 +39,10 @@ export async function GET(request) {
       returns.reduce((a, b) => a + (b - mean) ** 2, 0) / returns.length;
     const drift = mean * 100;
     const volatility = Math.sqrt(variance) * 100;
-    return NextResponse.json({ drift, volatility });
+    const price =
+      result?.meta?.regularMarketPrice ??
+      (prices.length > 0 ? prices[prices.length - 1] : null);
+    return NextResponse.json({ drift, volatility, price });
   } catch (err) {
     return NextResponse.json({ error: 'Error: ' + err.message }, { status: 500 });
   }
