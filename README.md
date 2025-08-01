@@ -23,7 +23,7 @@ Or Manually
 
 - `app/page.js` – landing page with a button that routes to `/brownian`.
 - `app/brownian/page.js` – main simulation UI built with React and Chart.js.
-- `app/api/stockstats/route.js` – API endpoint that fetches drift and volatility for a ticker.
+- `app/api/stockstats/route.js` – API endpoint that fetches drift, volatility, and the latest price for a ticker.
 - `app/layout.js` – global layout and fonts.
 - `app/globals.css` – Tailwind CSS styles.
 
@@ -78,10 +78,13 @@ const mean = returns.reduce((a, b) => a + b, 0) / returns.length;
 const variance = returns.reduce((a, b) => a + (b - mean) ** 2, 0) / returns.length;
 const drift = mean * 100;
 const volatility = Math.sqrt(variance) * 100;
+const price =
+  result?.meta?.regularMarketPrice ??
+  (prices.length > 0 ? prices[prices.length - 1] : null);
 ```
-【F:app/api/stockstats/route.js†L11-L41】
+【F:app/api/stockstats/route.js†L11-L45】
 
-These values are returned to the client and can pre-fill the simulator inputs.
+These values, including the latest price, are returned to the client and can pre-fill the simulator inputs.
 
 ## User Interface
 
