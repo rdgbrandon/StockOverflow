@@ -11,6 +11,63 @@ import {
 
 ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement);
 
+const POPULAR_TICKERS = [
+  { symbol: "AAPL", name: "Apple" },
+  { symbol: "AMZN", name: "Amazon" },
+  { symbol: "MSFT", name: "Microsoft" },
+  { symbol: "GOOG", name: "Alphabet" },
+  { symbol: "NVDA", name: "NVIDIA" },
+  { symbol: "META", name: "Meta Platforms" },
+  { symbol: "TSLA", name: "Tesla" },
+  { symbol: "CRM", name: "Salesforce" },
+  { symbol: "ADBE", name: "Adobe" },
+  { symbol: "INTC", name: "Intel" },
+  { symbol: "AMD", name: "Advanced Micro Devices" },
+  { symbol: "ORCL", name: "Oracle" },
+  { symbol: "CSCO", name: "Cisco Systems" },
+  { symbol: "IBM", name: "IBM" },
+  { symbol: "PYPL", name: "PayPal" },
+  { symbol: "SHOP", name: "Shopify" },
+  { symbol: "QCOM", name: "Qualcomm" },
+  { symbol: "NOW", name: "ServiceNow" },
+  { symbol: "SNOW", name: "Snowflake" },
+  { symbol: "ZM", name: "Zoom Video" },
+  // Large non-tech / diversified companies
+  { symbol: "WMT", name: "Walmart" },
+  { symbol: "KO", name: "Coca-Cola" },
+  { symbol: "MCD", name: "McDonald's" },
+  { symbol: "DIS", name: "Walt Disney" },
+  { symbol: "NKE", name: "Nike" },
+  { symbol: "PEP", name: "PepsiCo" },
+  { symbol: "PG", name: "Procter & Gamble" },
+  { symbol: "JNJ", name: "Johnson & Johnson" },
+  { symbol: "V", name: "Visa" },
+  { symbol: "MA", name: "Mastercard" },
+  { symbol: "XOM", name: "ExxonMobil" },
+  { symbol: "CVX", name: "Chevron" },
+  { symbol: "JPM", name: "JPMorgan Chase" },
+  { symbol: "BRK.B", name: "Berkshire Hathaway" },
+  { symbol: "COST", name: "Costco Wholesale" },
+  { symbol: "HD", name: "Home Depot" },
+  { symbol: "BAC", name: "Bank of America" },
+  { symbol: "WFC", name: "Wells Fargo" },
+  //Cryptocurrencys
+  { symbol: "BTC-USD", name: "Bitcoin" },
+  { symbol: "ETH-USD", name: "Ethereum" },
+  { symbol: "BNB-USD", name: "Binance Coin" },
+  { symbol: "XRP-USD", name: "XRP" },
+  { symbol: "SOL-USD", name: "Solana" },
+  { symbol: "ADA-USD", name: "Cardano" },
+  { symbol: "DOGE-USD", name: "Dogecoin" },
+];
+
+const NAME_TO_SYMBOL = POPULAR_TICKERS.reduce((acc, t) => {
+  acc[t.name.toUpperCase()] = t.symbol;
+  return acc;
+}, {
+  GOOGLE: "GOOG",
+});
+
 export default function BrownianSimulator() {
   const [initialPrice, setInitialPrice] = useState(100);
   const [volatility, setVolatility] = useState(1); // Stored as percentage (1 = 1%)
@@ -18,6 +75,10 @@ export default function BrownianSimulator() {
   const [days, setDays] = useState(100);
   const [dataPoints, setDataPoints] = useState([]);
   const [isRunning, setIsRunning] = useState(false);
+  const [symbol, setSymbol] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const intervalRef = useRef(null);
 
   const generateNextPrice = () => {
@@ -40,6 +101,35 @@ export default function BrownianSimulator() {
   const stopSimulation = () => {
     clearInterval(intervalRef.current);
     setIsRunning(false);
+  };
+
+  const normalizeSymbol = (value) => {
+    const upper = value.toUpperCase().trim();
+    return NAME_TO_SYMBOL[upper] || upper;
+  };
+
+  const fetchStats = async () => {
+    if (!symbol) return;
+    const normalized = normalizeSymbol(symbol);
+    setSymbol(normalized);
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/stockstats?symbol=${normalized}`);
+      if (!res.ok) {
+        throw new Error('Failed to fetch');
+      }
+      const json = await res.json();
+      if (json.price != null && !isNaN(json.price)) {
+        setInitialPrice(parseFloat(json.price.toFixed(2)));
+      }
+      setVolatility(parseFloat(json.volatility.toFixed(2)));
+      setDrift(parseFloat(json.drift.toFixed(2)));
+    } catch (err) {
+      setError('Could not fetch data');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -161,6 +251,48 @@ export default function BrownianSimulator() {
 
         {/* Controls */}
         <div className="grid grid-cols-2 gap-4 mb-6">
+          <label className="flex flex-col col-span-2">
+            <span className="font-semibold mb-1 text-gray-300">Stock Symbol</span>
+            <div className="flex gap-2">
+              <div className="flex-grow relative">
+                <input
+                  type="text"
+                  value={symbol}
+                  onFocus={() => setShowSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 100)}
+                  onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+                  className="border rounded px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-white bg-gray-800"
+                />
+                {showSuggestions && (
+                  <ul className="absolute left-0 right-0 bg-gray-800 border border-gray-700 rounded mt-1 z-10 max-h-48 overflow-y-auto">
+                    {POPULAR_TICKERS.map((t) => (
+                      <li key={t.symbol}>
+                        <button
+                          type="button"
+                          onMouseDown={() => {
+                            setSymbol(t.symbol);
+                            setShowSuggestions(false);
+                          }}
+                          className="block w-full text-left px-3 py-1 hover:bg-gray-700"
+                        >
+                          {t.symbol} - {t.name}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <button
+                type="button"
+                disabled={loading || !symbol}
+                onClick={fetchStats}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded disabled:opacity-50"
+              >
+                {loading ? "Loading..." : "Fetch"}
+              </button>
+            </div>
+            {error && <span className="text-red-500 text-sm mt-1">{error}</span>}
+          </label>
           <label className="flex flex-col">
             <span className="font-semibold mb-1 text-gray-300">Initial Price</span>
             <input
